@@ -1,12 +1,14 @@
 package main
 
 import (
+	"aite9/notification"
 	"aite9/printer"
 	"bufio"
 	"errors"
 	"flag"
 	"net"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -41,10 +43,10 @@ func main() {
 	portList := parsePortList(*tcpPortsString)
 
 	var errorCount int = 0
-	var errorServerPortList = []string{}
+	var errorMessageList = []string{}
 	for _, server := range serverList {
 		if (lookupCheck(server) == false) {
-			printer.Printf("lookup failed: " + server + "\n")
+			printer.Printf("lookup failed(skip scan): " + server + "\n")
 			continue
 		}
 		for _, port := range portList {
@@ -52,18 +54,23 @@ func main() {
 			result, err := scanOpenPort(server, port)
 			if (result) {
 				errorCount++
-				errorServerPortList = append(
-					errorServerPortList,
+				errorMessageList = append(
+					errorMessageList,
 					err.Error(),
 				)
 			}
 		}
 	}
 
-	printer.Printf("=== Result: error count %d \n", errorCount)
 	if errorCount > 0 {
-		printer.ErrorPrintf("%s",errorServerPortList)
+		errorText := strings.Join(errorMessageList, "\n")
+		printer.ErrorPrintf("\n%s\n",errorText)
+		printer.ErrorPrintf("=== Result: error count %d \n", errorCount)
+
+		notification.PostSlack("aite9 (Ver. "+VERSION+"), error count:" + strconv.Itoa(errorCount), errorText)
 		os.Exit(1)
+	} else {
+		printer.Printf("\n=== Result: All OK. no error \n")
 	}
 }
 
