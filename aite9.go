@@ -5,7 +5,6 @@ import (
 	"bufio"
 	"errors"
 	"flag"
-	"fmt"
 	"net"
 	"os"
 	"strings"
@@ -42,6 +41,7 @@ func main() {
 	portList := parsePortList(*tcpPortsString)
 
 	var errorCount int = 0
+	var errorServerPortList = []string{}
 	for _, server := range serverList {
 		if (lookupCheck(server) == false) {
 			printer.Printf("lookup failed: " + server + "\n")
@@ -52,13 +52,17 @@ func main() {
 			result, err := scanOpenPort(server, port)
 			if (result) {
 				errorCount++
-				fmt.Println(err)
+				errorServerPortList = append(
+					errorServerPortList,
+					err.Error(),
+				)
 			}
 		}
 	}
 
-	fmt.Printf("=== Result: error count %d \n", errorCount)
+	printer.Printf("=== Result: error count %d \n", errorCount)
 	if errorCount > 0 {
+		printer.ErrorPrintf("%s",errorServerPortList)
 		os.Exit(1)
 	}
 }
@@ -77,7 +81,7 @@ func scanOpenPort(server string, port string) (bool, error) {
 	if err == nil {
 		conn.Close()
 		//port open. It's danger
-		return true, errors.New(" open port error: " + address)
+		return true, errors.New(" open port error: " + address + "\n")
 	}
 	return false, nil
 }
