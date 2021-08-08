@@ -16,7 +16,7 @@ import (
 var VERSION = "0.0.1"
 
 func showUsage() {
-	printer.ErrorPrintf("USAGE:  go run aite9.go -tcp '22,3306,8080' -mode slient < serverlist.txt \n")
+	printer.ErrorPrintf("USAGE:  go run aite9.go -tcp '22,3306,8080' -mode silent < serverlist.txt \n")
 	os.Exit(1)
 }
 
