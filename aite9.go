@@ -64,13 +64,15 @@ func main() {
 
 	if errorCount > 0 {
 		errorText := strings.Join(errorMessageList, "\n")
-		printer.ErrorPrintf("\n%s\n",errorText)
-		printer.ErrorPrintf("=== Result: error count %d \n", errorCount)
+		printer.Printf("\n=== Result =====================")
+		printer.Printf("\n%s\n",errorText)
+		printer.Printf(" Result: error count %d \n", errorCount)
+		printer.Printf("============================\n\n")
 
 		notification.PostSlack("aite9 (Ver. "+VERSION+"), error count:" + strconv.Itoa(errorCount), errorText)
 		os.Exit(1)
 	} else {
-		printer.Printf("\n=== Result: All OK. no error \n")
+		printer.Printf("\n=== Result: All OK. no error \n\n")
 	}
 }
 
