@@ -31,7 +31,8 @@ func main() {
 		showUsage()
 	}
 
-	tcpPortsString := flag.String("tcp", "22", "tcp port list with comma. ex. 80,443,111")
+	tcpPortsString := flag.String("tcp", "", "tcp port list with comma. ex. 80,443,111")
+	udpPortsString := flag.String("udp", "", "udp port list with comma. ex. 80,443,111")
 	mode := flag.String("mode", "", "optional: silent")
 	flag.Parse()
 
@@ -39,8 +40,9 @@ func main() {
 		printer.SilentModeOn()
 	}
 
-	infoDump(*tcpPortsString)
-	portList := parsePortList(*tcpPortsString)
+	infoDump(*tcpPortsString, *udpPortsString)
+	tcpPortList := parsePortList(*tcpPortsString)
+	udpPortList := parsePortList(*udpPortsString)
 
 	var errorCount int = 0
 	var errorMessageList = []string{}
@@ -49,9 +51,26 @@ func main() {
 			printer.Printf("lookup failed(skip scan): " + server + "\n")
 			continue
 		}
-		for _, port := range portList {
-			printer.Printf("start scan: " + server + ":" + port + "\n")
-			result, err := scanOpenPort(server, port)
+		for _, port := range tcpPortList {
+			if port == "" {
+				continue
+			}
+			printer.Printf("start TCP scan: " + server + ":" + port + "\n")
+			result, err := scanOpenTcpPort(server, port)
+			if (result) {
+				errorCount++
+				errorMessageList = append(
+					errorMessageList,
+					err.Error(),
+				)
+			}
+		}
+		for _, port := range udpPortList {
+			if port == "" {
+				continue
+			}
+			printer.Printf("start UDP scan: " + server + ":" + port + "\n")
+			result, err := scanOpenUdpPort(server, port)
 			if (result) {
 				errorCount++
 				errorMessageList = append(
@@ -84,13 +103,39 @@ func lookupCheck(server string) bool {
 	return false
 }
 
-func scanOpenPort(server string, port string) (bool, error) {
+func scanOpenTcpPort(server string, port string) (bool, error) {
 	address := server + ":" + port
 	conn, err := net.DialTimeout("tcp", address, time.Duration(1) * time.Second)
 	if err == nil {
 		conn.Close()
 		//port open. It's danger
-		return true, errors.New(" open port error: " + address + "\n")
+		printer.Printf(" open TCP port error: " + address + "\n")
+		return true, errors.New(" open TCP port error: " + address + "\n")
+	}
+	return false, nil
+}
+func scanOpenUdpPort(server string, port string) (bool, error) {
+	address := server + ":" + port
+	conn, _ := net.DialTimeout("udp", address, time.Duration(1) * time.Second)
+
+	writeCount := 0
+	for i := 0; i < 3; i++ {
+		buf := []byte("12345678912345")
+		a, _ := conn.Write(buf)
+		printer.Printf("\nwrite: " + strconv.Itoa(a))
+		//buffer := make([]byte, 1)
+		//length, err := conn.Read(buffer)
+		//if length > 0 || err == nil {
+		if a > 0 {
+			writeCount++
+		}
+		conn.Close()
+	}
+
+	if writeCount > 0 {
+		//port open. It's danger
+		printer.Printf(" open UDP port error: " + address + "\n")
+		return true, errors.New(" open UDP port error: " + address + "\n")
 	}
 	return false, nil
 }
@@ -119,9 +164,12 @@ func getServerList(fp *os.File) []string {
 	return serverList
 }
 
-func infoDump(tcpPorts string) {
+func infoDump(tcpPorts string, udpPorts string) {
 	showVersion()
-	printer.Printf("- TCP port list: %s\n\n", tcpPorts)
+	printer.Printf("- TCP port list: %s\n", tcpPorts)
+	if udpPorts != "" {
+		printer.Printf("- UDP port list: %s\n\n", udpPorts)
+	}
 	printer.Printf("")
 }
 
